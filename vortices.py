@@ -41,12 +41,12 @@ for i in range(len(x_v)):
     y_diff = Y - y_v[i]
 
     # Calculate r
-    r = np.sqrt(np.power(x_diff,2) + np.power(y_diff, 2))
+    r_sqr = np.power(x_diff,2) + np.power(y_diff, 2)
     
     
     # Compute x and y velocities due to vortex located at x_i, y_i
-    vel_x_temp = k_v[i] * (-y_diff) / r**2
-    vel_y_temp = k_v[i] * (x_diff) / r**2
+    vel_x_temp = k_v[i] * (-y_diff) / r_sqr
+    vel_y_temp = k_v[i] * (x_diff) / r_sqr
 
     
     # Add to the total velocity field 
@@ -54,8 +54,8 @@ for i in range(len(x_v)):
     vel_y += vel_y_temp
     
     # Mask out region around vortex
-    vel_x[r <= r_mask ] = np.nan
-    vel_y[r <= r_mask ] = np.nan
+    vel_x[r_sqr <= r_mask**2 ] = np.nan
+    vel_y[r_sqr <= r_mask**2 ] = np.nan
 
 
 # Set boundaries of the simulation box
@@ -79,6 +79,7 @@ while count < Nsteps:
     vel_y = np.zeros(np.shape(Y)) 
 
     
+    # Initialize advection velocities
     adv_vel_x = np.zeros(len(x_v))
     adv_vel_y = np.zeros(len(x_v))
     
@@ -86,8 +87,10 @@ while count < Nsteps:
     
     for i in indices:
         
+        # Remove current index to avoid calculating advection velocity due to itself
         index_use = indices[indices!=i]
         
+        # Initialize advection velocities
         adv_vel_x_i = 0
         adv_vel_y_i = 0
         
@@ -96,11 +99,11 @@ while count < Nsteps:
             x_diff_j = x_v[i] - x_v[j]
             y_diff_j = y_v[i] - y_v[j]
             
-            r = np.sqrt(np.power(x_diff_j,2) + np.power(y_diff_j, 2))
+            r_sqr = np.power(x_diff_j,2) + np.power(y_diff_j, 2)
 
             # Compute x and y velocities due to vortex located at x_i, y_i
-            adv_vel_x[i] += k_v[j] * (-y_diff_j) / r**2
-            adv_vel_y[i] += k_v[j] * (x_diff_j) / r**2
+            adv_vel_x[i] += k_v[j] * (-y_diff_j) / r_sqr
+            adv_vel_y[i] += k_v[j] * (x_diff_j) / r_sqr
         
         
     # Update positions of vortices 
@@ -117,12 +120,11 @@ while count < Nsteps:
         y_diff = Y - y_v[i]
 
         # Calculate r
-        r = np.sqrt(np.power(x_diff,2) + np.power(y_diff, 2))
-
+        r_sqr = np.power(x_diff,2) + np.power(y_diff, 2)
 
         # Compute x and y velocities due to vortex located at x_i, y_i
-        vel_x_temp = k_v[i] * (-y_diff) / r**2
-        vel_y_temp = k_v[i] * (x_diff) / r**2
+        vel_x_temp = k_v[i] * (-y_diff) / r_sqr
+        vel_y_temp = k_v[i] * (x_diff) / r_sqr
 
 
         # Add to the total velocity field 
@@ -131,8 +133,8 @@ while count < Nsteps:
 
         # Determine indices of range around the origin
 
-        vel_x[r <= r_mask ] = np.nan
-        vel_y[r <= r_mask ] = np.nan
+        vel_x[r_sqr <= r_mask**2 ] = np.nan
+        vel_y[r_sqr <= r_mask**2 ] = np.nan
     
     # Update plot of the streamlines
         
@@ -146,7 +148,7 @@ while count < Nsteps:
     ax.streamplot(X,Y,vel_x,vel_y, density = [1,2], color = 'firebrick')
     pl.title('Time from beginning, {0} s'.format(count*dt))
     fig.canvas.draw()
-    pl.pause(0.00001)
+    pl.pause(0.0001)
     count+=1
         
      
