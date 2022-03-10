@@ -11,14 +11,14 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 # Set up the grid and advection and diffusion parameters
-Ngrid = 30
-Nsteps = 3000
-dt = 10
+Ngrid = 120
+Nsteps = 10000
+dt = 9
 dx = 1
 g = 0.01
 
 # Set the diffusion coefficient
-D = 0.1
+D = 0.5
 
 # Set arbitrary tilt to the plane
 alpha = 10 #deg 
@@ -41,7 +41,7 @@ ax.plot(x, u_analytic, label = 'Analytic Solution', color = 'darkorange')
 
 
 # We will be updating these plotting objects
-plt, = ax.plot(x, f, 'ro', color = 'firebrick', label = 'Numerical Solution')
+plt, = ax.plot(x, f, color = 'firebrick', label = 'Numerical Solution', ls = '--')
 ax.legend()
 ax.set_xlabel('Vertical position, arbitrary')
 ax.set_ylabel('Velocity, arbitrary')
@@ -49,14 +49,15 @@ ax.set_ylabel('Velocity, arbitrary')
 # Draw
 fig.canvas.draw()
 
+npts = len(x)
 for ct in range(Nsteps):
 
     ## Calculate diffusion first
     # Setting up matrices for diffusion operator
-    A = np.eye(Ngrid) * (1.0 + 2.0 * beta) + np.eye(Ngrid, k=1) * -beta + np.eye(Ngrid, k=-1) * -beta
+    A = np.eye(npts) * (1.0 + 2.0 * beta) + np.eye(npts, k=1) * -beta + np.eye(npts, k=-1) * -beta
 
     # Apply no-slip on left edge 
-    A[0] = np.zeros(Ngrid)
+    A[0] = np.zeros(npts)
     A[0][0] = 1.0
     
     # Stress-free boundary condition on the right
@@ -68,8 +69,11 @@ for ct in range(Nsteps):
     f += a*dt    
     f[0] = 0
 
-    # update the plot
-    plt.set_ydata(f)
+    # only plot every 10th step to speed up plot
+    if ct%10==0: 
+        # update the plot
+        plt.set_ydata(f)
 
-    fig.canvas.draw()
-    pl.pause(0.001)
+        fig.canvas.draw()
+        ax.set_title('Step {0}'.format(ct))
+        pl.pause(0.01)
