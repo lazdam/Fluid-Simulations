@@ -1,7 +1,7 @@
 """
 Evolving an adiabatic shock wave
 @author: Mattias Lazda
-@collab: Jules Fauscher 
+@collab: Jules Fauscher, Nicolas Desjardins
 March 19th 2022
 """
 import numpy as np
@@ -10,12 +10,13 @@ import matplotlib.pyplot as pl
 # Set up the grid, time and grid spacing
 Ngrid = 100
 Nsteps = 5000
-dt = 0.1
-dx = 2.0
+dt = 0.01
+dx = 2
 gamma = 5/3 # adiabatic index
 
 x = np.arange(Ngrid) * dx # grid
 f1 = np.ones(Ngrid) # rho
+f1_orig = f1.copy()
 f2 = np.zeros(Ngrid) # rho x u
 f3 = np.ones(Ngrid) # rho x e_tot
 u = np.zeros(Ngrid+1) # advective velocity (keep the 1st and last element zero)
@@ -31,6 +32,7 @@ cs2 = gamma * P / f1
 u_wave = f2/f1
 mach = u_wave/np.sqrt(cs2)
 
+
 def advection(f, u, dt, dx):
     # calculating flux terms
     J = np.zeros(len(f)+1) # keeping the first and the last term zero
@@ -40,34 +42,43 @@ def advection(f, u, dt, dx):
     return f
 
 # Apply initial Gaussian perturbation to energy 
-Amp, sigma = 0.5, Ngrid/10
-f2 = f2 + Amp * np.exp(-(x - x.max()/2) ** 2 / sigma ** 2)
-f1 = f1 + Amp * np.exp(-(x - x.max()/2) ** 2 / sigma ** 2)
-f3 = f3 + 1000 * np.exp(-(x - x.max()/2) ** 2 / sigma ** 2)
+Amp, sigma = 10000, Ngrid/2
+f3 = f3 + Amp * np.exp(-(x - x.max()/2) ** 2 / sigma ** 2)
+
+# Get analytic solution
+#diff_rho = (gamma - 1)/(gamma + 1) + 2/((1 + gamma)*mach**2)
+#rho2 = 1/diff_rho
+rho2 = np.empty(Ngrid)
+rho2.fill((gamma + 1)/(gamma-1))
 
 # plotting
 pl.ion()
 fig, ax = pl.subplots(2,1)
 
 # Density plot
-x1, = ax[0].plot(x, f1, 'ro')
-#ax[0].set_xlim([0, dx*Ngrid+1])
-#ax[0].set_ylim([0, 10])
+x1, = ax[0].plot(x, f1)
+x11, = ax[0].plot(x, rho2, label = 'Analytic')
+ax[0].set_xlim([0, dx*Ngrid])
+ax[0].set_ylim([0, 6])
+ax[0].grid()
 ax[0].set_xlabel('x')
 ax[0].set_ylabel('Density')
+ax[0].legend()
 
 # Mach number plot
-x2, = ax[1].plot(x, mach, 'ro')
-#ax[1].set_xlim([0, dx*Ngrid+1])
-ax[1].set_ylim([-10, 10])
+x2, = ax[1].plot(x, mach)
+ax[1].set_xlim([0, dx*Ngrid])
+ax[1].set_ylim([-1, 1])
 ax[1].set_xlabel('x')
+ax[1].grid()
 ax[1].set_ylabel(r'$\mathcal{M}$')
 
 fig.canvas.draw()
 
 for ct in range(Nsteps):
     # advection velocity at the cell interface
-    u[1:-1] = 0.5 * ((f2[:-1] / f1[:-1]) + (f2[1:] / f1[1:])) # Need to add third velocity 
+    u[1:-1] = 0.5 * ((f2[:-1] / f1[:-1]) + (f2[1:] / f1[1:])) 
+
 
     # update density and momentum
     f1 = advection(f1, u, dt, dx)
@@ -80,11 +91,11 @@ for ct in range(Nsteps):
     cs2 = gamma*P/f1
     
     # Add pressure gradient 
-    f2[1:-1] = f2[1:-1] - (dt/dx) * cs2[1:-1] * (f1[2:] - f1[:-2])
+    f2[1:-1] = f2[1:-1] -  0.5*(dt/dx) * (P[2:] - P[:-2]) 
 
     # Correct source term at boundary 
-    f2[0] = f2[0] - 0.5 * (dt/dx) * cs2[0] * (f1[1] - f1[0])
-    f2[-1] = f2[-1] - 0.5 * (dt/dx) * cs2[-1] * (f1[-1] - f1[-2])
+    f2[0] = f2[0] -  0.5*(dt/dx) * (P[1] - P[0]) 
+    f2[-1] = f2[-1] -  0.5*(dt/dx) * (P[-1] - P[-2])
 
     
     # Re-calculate advection velocities
@@ -96,12 +107,16 @@ for ct in range(Nsteps):
     # Re calculate pressure
     P = (gamma - 1)/gamma * (f3 - 0.5*f2**2/f1)
 
+    # The below terms are needed to evolve f3 in time
+    u_wave = f2/f1
+    Pu = P*u_wave
+
     # Add source to energy term
-    f3[1:-1] = (gamma/(gamma-1))*P[1:-1] + 0.5*(f2[1:-1]**2/f1[1:-1]) 
+    f3[1:-1] = f3[1:-1] - (dt/dx)*(u_wave[1:-1]*(f3[2:] - f3[:-2]) + (Pu[2:] - Pu[:-2]))
 
     #correct for source term at the boundary (reflective)
-    f3[0] = (gamma/(gamma-1))*P[0] + 0.5*(f2[0]**2/f1[0])
-    f3[-1] = (gamma/(gamma-1))*P[0] + 0.5*(f2[0]**2/f1[0])
+    f3[0] = f3[0] -  (dt/dx)*(u_wave[0]*(f3[1] - f3[0]) + (Pu[1] - Pu[0]))
+    f3[-1] = f3[-1] -  (dt/dx)*(u_wave[-1]*(f3[-1] - f3[-2]) + (Pu[-1]-Pu[-2]))
 
     # Update pressure and sound speed
     P = (gamma - 1)/gamma * (f3 - 0.5*f2**2/f1)
@@ -109,10 +124,13 @@ for ct in range(Nsteps):
     
     u_wave = f2/f1
     mach = u_wave/np.sqrt(cs2)
+    # Get analytic solution
+    # diff_rho = (gamma - 1)/(gamma + 1) + 2/((1 + gamma)*mach**2)
+    # rho2 = 1/diff_rho
 
     # update the plot
     x1.set_ydata(f1)
     x2.set_ydata(mach)
     fig.canvas.draw()
-    pl.pause(0.01)
+    pl.pause(0.00001)
 
