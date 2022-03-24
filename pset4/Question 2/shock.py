@@ -11,7 +11,7 @@ import matplotlib.pyplot as pl
 Ngrid = 100
 Nsteps = 5000
 dt = 0.012
-dx = 10
+dx = 1.5
 gamma = 5/3 # adiabatic index
 
 x = np.arange(Ngrid) * dx # grid
