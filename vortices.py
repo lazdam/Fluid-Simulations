@@ -5,6 +5,8 @@ Description
 @collab: Jules Faucher, David Tucci
 
 Feb 4, 2022
+
+Simulation of leapfrog vortices. 
 """
 import numpy as np
 import matplotlib.pyplot as pl

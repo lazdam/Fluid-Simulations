@@ -6,6 +6,7 @@ Diffusion
 March 9, 2022
 
 NOTE: This code is heavily based off of the sample code provided by Prof. Lee, available here: https://github.com/evjhlee/phys432-w2022/blob/main/phys432_w2022_advdiff.py
+Simulation of momentum diffusion of lava down an inclined plane. 
 """
 import numpy as np
 import matplotlib.pyplot as pl

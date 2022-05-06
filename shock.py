@@ -3,6 +3,8 @@ Evolving an adiabatic shock wave
 @author: Mattias Lazda
 @collab: Jules Fauscher, Nicolas Desjardins, David Tucci
 March 19th 2022
+
+Simulation of a shock of an adiabatic, ideal gas. 
 """
 import numpy as np
 import matplotlib.pyplot as pl
